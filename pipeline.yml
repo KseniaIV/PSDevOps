@@ -1,0 +1,41 @@
+
+
+stages:
+  
+- stage:  Test
+  displayName:  Test
+  jobs:
+  - deployment:  CI
+    displayName: "pipeline.yml"
+    environment: "Azure"
+
+
+    pool:
+      vmImage: "windows-latest"
+    strategy:
+        runOnce:
+          deploy:
+              steps: 
+              - checkout: self
+              - task: AzureCLI@2
+                  inputs:
+                    azureSubscription: 'PSDevOpsTestingSP'
+                    scriptType: 'ps'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+
+                          $config = @{
+                              Script       = '$(System.DefaultWorkingDirectory)/Tests/Test.ps1'
+                              OutputFormat = 'NUnitXml'        
+                              OutputFile   = 'TestResults.xml'
+                              PassThru     =  $true
+                              ExcludeTag   = 'Incomplete'
+                          }
+                          $result = Invoke-Pester @config
+
+
+              - task: PublishTestResults@2
+                inputs:
+                      testResultsFormat: 'NUnit'
+                      testResultsFiles: 'TestResults.xml'
+                      testRunTitle: 'Integration'
